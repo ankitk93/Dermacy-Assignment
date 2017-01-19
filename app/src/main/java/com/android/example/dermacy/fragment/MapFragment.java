@@ -1,6 +1,9 @@
 package com.android.example.dermacy.fragment;
 
+import android.content.Context;
 import android.location.Location;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
@@ -16,6 +19,7 @@ import com.android.example.dermacy.R;
 import com.android.example.dermacy.adapter.WeatherAdapter;
 import com.android.example.dermacy.model.Data;
 import com.android.example.dermacy.utils.AppConstants;
+import com.android.example.dermacy.utils.InternetReciever;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationServices;
@@ -47,8 +51,7 @@ public class MapFragment extends Fragment {
 
     Data data;
     GoogleMap mGoogleMap;
-
-    ArrayList<Data> datas;
+    InternetReciever reciever = new InternetReciever();
 
     // base url for different city weather
     private final static String BASE_URL = AppConstants.WEATHER_API_BASE_URL;
@@ -67,9 +70,14 @@ public class MapFragment extends Fragment {
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        datas = new ArrayList<>();
-        for (String c : AppConstants.cities)
-            getForcast(c);
+        boolean isInternetConnected = isOnline(getContext());
+        if (isInternetConnected==true){
+            for (String c : AppConstants.cities)
+                getForcast(c);
+        }else{
+            Toast.makeText(getContext(),"Please connect to internet",Toast.LENGTH_LONG).show();
+        }
+
 
         SupportMapFragment supportMapFragment = (SupportMapFragment)getChildFragmentManager().findFragmentById(R.id.map);
         if (supportMapFragment == null) {
@@ -132,12 +140,21 @@ public class MapFragment extends Fragment {
                     LatLng positions = new LatLng(result.getLatitude(),result.getLongitude());
                     mGoogleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(positions, 5));
                     mGoogleMap.addMarker(new MarkerOptions().position(positions)
-                            .title("City " +result.name)
+                            .title(result.name)
                             .snippet("Temp :" +result.getTemperatureInCelsius()+ "°C")
                             .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW)));
                 }
                 super.onPostExecute(result);
             }
         }.execute(cities);
+    }
+
+    public boolean isOnline(Context context) {
+
+        ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo netInfo = cm.getActiveNetworkInfo();
+        //should check null because in air plan mode it will be null
+        return (netInfo != null && netInfo.isConnected());
+
     }
 }
